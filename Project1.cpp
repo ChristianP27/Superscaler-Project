@@ -1,142 +1,165 @@
-// Christian Perry 
-// ID: 800657821
-// Project 1 ( Mips Simulator)
-
-
+#include <iomanip>
+#include <unordered_map>
+#include <bitset>
 #include <iostream>
 #include <unistd.h>
 #include <fcntl.h>
 #include <iomanip>
-#include <bitset>
-#include <string>
-#include <sstream>
-#include <unordered_map>
 using namespace std;
 
-
-
 struct instruction{
-    int addr, v, intVal, opcode, rs, rt, rd, shamt, imm, asInt, func, jaddr, dest = -1, src1 = -1, src2 = -1;
-    bool  pbreak;
-    unsigned int asUint;
-    string out, instr;
-    instruction(){ }; // constructor default
-    instruction( int i, int addr ){
-        asInt = i;
-        this->addr = addr;
-        asUint = (unsigned int) i;
-        out = bitset<32>(asInt).to_string();
-	string wSpaces = out.substr(0,1) + " " + out.substr(1,5) + " " +  out.substr(6,5) + " "  + out.substr(11,5) + " " + out.substr(16,5) + " " + out.substr(21,5) 
-		+ " " + out.substr(26,6);
+	int v,rs,rd,rt,shamt, func, opcode, imm, target, intVal, addr, jTarget,
+	    dest=-1, src1=-1, src2=-1;
+	string out, bitstr, istr;
+	bool isBreak;
+	instruction(){}
+	instruction( int i, int addr, bool doneBreak): isBreak( false )
+	{ 	
+		unsigned int ui = (unsigned int)  i;
+		this->addr = addr;
+		intVal = i;
+		v =  ui >> 31;
+		opcode = ui >> 26;
+		rs = ui << 6 >> 27;
+		rt = ui <<11 >> 27;
+		rd = ui << 16 >> 27;
+		imm = i << 16 >> 16;
+		target = (imm << 2);
+		jTarget = ui <<6 >> 4;
+		shamt = ui << 21 >> 27;
+		func = ui <<26 >> 26;
+		if( doneBreak ){
+			stringstream ss;
+			ss << "\t"<<addr << "\t" << i; 
+			out = bitset<32>( i ).to_string() + ss.str();
+		} else {
+			bitstr = bitset<32>(i).to_string();
+			bitstr = bitstr.substr(0,1) + " " + bitstr.substr(1,5) + " " + bitstr.substr(6,5) + " "
+				+ bitstr.substr(11, 5 ) + " " + bitstr.substr(16, 5) + " " 
+				+ bitstr.substr( 21, 5 ) + " " + bitstr.substr(26, 6);
+			{
+				stringstream ss;
+				ss << addr;
+				out = bitstr + "\t" + ss.str() + "\t";
+			}
 
-	{
-            stringstream ss1;
-            ss1 << wSpaces << "\t" << addr << "\t";
-            out = ss1.str(); // places the entire out of ssl into a full string for output
-        }
-        intVal = i;
-        v = asUint >> 31; // from right to left 31 bits to check 32nd bit for validity
-        opcode = asUint >> 26; // checks 6 bits at end for opcode
-        rs = asUint <<6 >>27; // from the right 27 bits then to the left of that 8 bits " 27(unicluded) - 6bits = 21(unincluded)" 
-        rs = (asUint >> 21) & 0x0000001F;// "WHAT DOES THE LAST PART MEAN"
-        rt = asUint <<11 >> 27;
-        imm = asInt << 16 >> 16;
-	rd = asUint << 16 >> 27;
-	func = asUint << 26 >> 26;
-	shamt = asUint << 21 >> 27;
-	jaddr = asUint << 6 >> 6;
-	if(!pbreak){	
-        if( v == 0){
-            instr = "Invalid Instruction";
-            out += instr;
-        } else if( opcode == 40 ){
-            stringstream ss1;
-            ss1 << "ADDI\tR"<< rt << ", R" << rs<<", #" << imm;
-            instr = ss1.str();
-            out += instr;
-        } else if( opcode == 43 ) {
-            stringstream ss1;
-            ss1 << "SW\tR" << rt << ", "<<imm<< "(R" << rs << ")";
-            instr = ss1.str();
-            out += instr;
-        } else if( opcode == 35){
-		stringstream ssl;
-		ssl << "LW\tR" << rt << ", " << imm << "(R" << rs << ")";
-	       	instr = ssl.str(); // makes the string of this
-		out += instr; // concatinates the strint to the out output	
-	} else if( opcode == 33){
-		stringstream ssl;
-		ssl << "BLTZ\tR" << rs << ", #" << imm*4;
-		instr = ssl.str();
-		out += instr;
-	} else if(( opcode == 32 ) && (func == 0)){
-        stringstream ssl;
-        if((shamt == 0) && (rt == 0) && (rs == 0)){
-           ssl << "NOP";
-	  instr = ssl.str();
-	 out+=instr; 
-        }
-        else {
-		ssl << "SLL\tR" << rd << ", R" << rt << ", #" << shamt;
-	    instr = ssl.str();
-		out += instr;	
-        }
-	} else if (( opcode == 32) && ( func == 34)){
-		stringstream ssl;
-		ssl << "SUB\tR" << rd << ", R" << rs << ", R" << rt;
-		instr = ssl.str();
-		out += instr;
-	} else if ( opcode == 34){ 
-		stringstream ssl;
-		ssl << "J\t#" << jaddr*4;
-		instr = ssl.str();
-		out += instr;
-	} else if (( opcode == 32 ) && ( func == 32)){
-		stringstream ssl;
-		ssl << "ADD\tR" << rd << ", R" << rs << ", R" << rt;
-		instr = ssl.str();
-		out += instr;
-	} else if (( opcode == 32 ) && ( func == 13 )){
-		stringstream ssl;
-		ssl << "BREAK";
-		instr = ssl.str();
-		out += instr;
-		pbreak = true;
-	} else if((opcode == 32) && func == 8){ //Jr
-        stringstream ssl;
-        ssl << "JR\tR" << rs;
-        instr = ssl.str();
-        out += instr;
-    } else if((opcode == 32) && (func == 2)){ // SRL
-        stringstream ssl;
-        ssl << "SRL\tR" << rd << ", R" << rt << ", #" << shamt;
-        instr = ssl.str();
-        out += instr;
-    } else if ((opcode == 60 ) && (func == 2)) {
-        stringstream ssl;
-        ssl << "MUL\tR" << rd << ", R" << rs << ", R" << rt;
-        instr = ssl.str();
-        out += instr;
-    } else if ((opcode == 32) && (func == 10)) { 
-        stringstream ssl;
-        ssl << "MOVZ\tR" << rd << ", R" << rt << ", R" << rt;
-        instr = ssl.str();
-        out += instr;
-    }
+			if( v == 0 ){
+				out = out + "Invalid Instruction";
+				istr = "Invalid Instruction";
+			}
+			else if( ui == 2147483648 ){
+                                stringstream ss;
+                                ss << "NOP";
+				out = out + ss.str();
+				istr = ss.str();
+                        }
+			else if( opcode == 40 ){
+				stringstream ss;
+				ss << "ADDI\tR" << rt << ", R" << rs << ", #" << imm; 
+				out = out + ss.str();
+				istr = ss.str();
+				dest = rt;
+				src1 = rs;
+				src2 = rs;
+			}
+			else if( opcode == 43 ){
+				stringstream ss;
+				ss << "SW\tR" << rt << ", " <<imm << "(R" << rs << ")"; 
+				out = out + ss.str();
+				istr = ss.str();
+				
+				src1 = rs;
+				src2 = rt;
+			}
+			else if( opcode == 35 ){
+				stringstream ss;
+				ss << "LW\tR" << rt << ", " <<imm << "(R" << rs << ")"; 
+				out = out + ss.str();
+				istr = ss.str();
+				dest = rt;
+				src1 = rs;
+				src2 = rs;
+			}
+			else if( opcode == 33 ){
+				stringstream ss;
+				ss << "BLTZ\tR" << rs << ", #" <<target; 
+				out = out + ss.str();
+				istr = ss.str();
+				//dest = rt;
+				src1 = rs;
+				src2 = rs;
+			}
+			else if( opcode == 32 && func == 0 ){
+				stringstream ss;
+				ss << "SLL\tR" << rd << ", R" << rt << ", #" << shamt; 
+				out = out + ss.str();
+				istr = ss.str();
+			}
+			else if( opcode == 32 && func == 2 ){
+				stringstream ss;
+				ss << "SRL\tR" << rd << ", R" << rt << ", #" << shamt; 
+				out = out + ss.str();
+				istr = ss.str();
+			}
+			else if( opcode == 32 && func == 34 ){
+				stringstream ss;
+				ss << "SUB\tR" << rd << ", R" << rs << ", R" << rt; 
+				out = out + ss.str();
+				istr = ss.str();
+			}
+			else if( opcode == 32 && func == 32 ){
+				stringstream ss;
+				ss << "ADD\tR" << rd << ", R" << rs << ", R" << rt; 
+				out = out + ss.str();
+				istr = ss.str();
+			}
+			else if( opcode == 32 && func == 10 ){
+				stringstream ss;
+				ss << "MOVZ\tR" << rd << ", R" << rs << ", R" << rt; 
+				out = out + ss.str();
+				istr = ss.str();
+			}
+			else if( opcode == 60 && func == 2 ){
+				stringstream ss;
+				ss << "MUL\tR" << rd << ", R" << rs << ", R" << rt; 
+				out = out + ss.str();
+				istr = ss.str();
+			}
+			else if( opcode == 32 && func == 8 ){
+				stringstream ss;
+				ss << "JR\tR" << rs; 
+				out = out + ss.str();
+				istr = ss.str();
+			}
+			else if( opcode == 34){
+				stringstream ss;
+				ss << "J\t#" << jTarget; 
+				out = out + ss.str();
+				istr = ss.str();
+
+			}
+			else if( opcode == 32 && func == 13 ){
+				stringstream ss;
+				ss << "BREAK"; 
+				istr = ss.str();
+				out = out + ss.str();
+				isBreak = true;
+			}
+			else {
+				printf ("Opcode %i func %i not implemented\n", opcode, func);
+				print();
+				exit(0);
+			}
+		}
+
+		
 	}
 
-	else if(pbreak){
-		stringstream ssl;
-		ssl << asInt;
-		instr = ssl.str();
-		out += instr;
+	void print(){
+		printf( "%s\n%s v %i; rs %i, rt %i, rd %i, shamt %i, func %i, opcode %i, func %i, imm %i, target %i, intVal %i, addr %i\n",
+				out.c_str(),bitstr.c_str(), v, rs, rt, rd, shamt, func, opcode, func,imm, target, intVal, addr);
 	}
-	
-    }
 };
-
-
-    // adding the printstate function that returns a string
 
 string printState( const int R[], const int PC, const int cycle, unordered_map< int, instruction> & MEM,
 	      const int breakAddr, const int lastAddr ){
@@ -144,7 +167,7 @@ string printState( const int R[], const int PC, const int cycle, unordered_map< 
 	stringstream ss1;
 	oldState.copyfmt(ss1);	
 	instruction I = MEM[PC];
-	ss1<< "====================\ncycle:"<<cycle<<" "<<PC<<"\t"<< I.instr<<"\n\nregisters:";
+	ss1<< "====================\ncycle:"<<cycle<<" "<<PC<<"\t"<< I.istr<<"\n\nregisters:";
 	for( int i = 0; i < 32; i++ ) {
 		if(i%8 == 0){
 			ss1 << "\nr"<<std::setfill('0') << std::setw(2)<< i;
@@ -163,70 +186,64 @@ string printState( const int R[], const int PC, const int cycle, unordered_map< 
 
 }	
 
-
-
-
-
-
-
-
-
-
-
-int main( )
+int main( ) // add arguments later
 {
-    char buffer[4];
-    int pbreakaddr;
-    bool pbreak = false;
-    int maxaddr;
-    int i;
-    char * iPtr;
-    iPtr = (char*)(void*) &i;
-    int addr = 96;
-    int FD = open("t1.bin", O_RDONLY);
-    unordered_map< int, instruction> MEM;
-    int amt = 4;
-    while( amt != 0 )
-    {
-        amt = read(FD, buffer, 4);
-
-        if( amt == 4)
+	int counter = 0;
+	unordered_map< int, instruction> MEM;
+	bool doneBreak = false;
+	int breakAddr = 0;
+	int lastAddr = 0;
+        char buffer[4];
+        int i;
+        char * iPtr;
+        iPtr = (char*)(void*) &i;
+	int addr = 96;
+        int FD = open("t1.bin" , O_RDONLY);
+        printf( "filename: %s", "t1.bin\n");
+	int amt = 4;
+        while( amt != 0 )
         {
-            iPtr[0] = buffer[3];
-            iPtr[1] = buffer[2];
-            iPtr[2] = buffer[1];
-            iPtr[3] = buffer[0];
-            //cout << "i = " <<hex<< i << endl;
-            instruction I( i, addr);
-            maxaddr = addr;
-            if((I.opcode == 32) && (I.func == 13)){
-                pbreakaddr = I.addr + 4;
-            } 
-            //cout << I.out << endl;
-            //cout << "op code: " << dec << (((unsigned int)i)>>26) << endl;
-            //cout << "rs bits: " << ((((unsigned int)i)<<6)>>27) << endl;
-            MEM[addr] = I;
-            addr += 4;
-        }
-    }
-    // to get the ammount of instructions after the pbreakaddr
-    int incr = (maxaddr - pbreakaddr) / 4;
-    
-    struct processorState{
-        int R[32] = {0};  // all the spots in the array = 0
-        int PC = 96;
-        int cycle = 1;
-        unordered_map< int , instruction> MEM;
-        int preIssue[4] = {0};
-        int preALU[2] = {0};
-        int preMEM[2] = {0};
-        struct postThings{
-            int instr = 0, value = 0;
-        };
-        postThings postALU, postMEM;
+                amt = read(FD, buffer, 4);
+                if( amt == 4)
+                {
+                        iPtr[0] = buffer[3];
+                        iPtr[1] = buffer[2];
+                        iPtr[2] = buffer[1];
+                        iPtr[3] = buffer[0];
+                        //cout << "i = " <<hex<< i << endl;
+                }
+        	instruction I( i, addr, doneBreak );
+		MEM[addr] = I;
+		if( I.isBreak ){
+		       	doneBreak = true;
+			breakAddr = addr;
+		}
+		addr +=4;
+	}
+	lastAddr = addr-8;
 
-        bool XBWcheck( int reg, int issuePos ) {
-            if( reg < 0 ) return false;
+	// for( int i = 96; i < lastAddr; i+=4 )
+	// 	cout << MEM[i].out << endl;
+
+	// make a register file and processor state elements
+	struct processorState{
+		int R[32] ={0};
+		int PC = 96;
+		int cycle = 1;
+		unordered_map< int, instruction> MEM;
+        int preIssue[4] = {0};
+		int preALU[2] = {0};
+		int preMEM[2] = {0};
+		// int preIssue[4] = {0};
+		// int preALU[2] = {0};
+		// int preMEM[2] = {0};
+		struct postThings{
+			int instr=0, value=0;
+		};
+		postThings postALU, postMEM;
+		
+		bool XBWcheck( int reg, int issuePos ){
+			if( reg <0 ) return false;
 			for( int i = issuePos-1; i >=0; i-- ){
 				if( reg == MEM[preIssue[i]].dest ) return true;
 			}
@@ -237,156 +254,203 @@ int main( )
 			if( reg == MEM[postALU.instr].dest ) return true;
 			if( reg == MEM[postMEM.instr].dest ) return true;
 			return false;
-        }
-
-        void WB(){ // fetch instruction phase 
-            if( postMEM.instr != 0 ) {
-                R[ MEM[postMEM.instr].dest ] = postMEM.value;
-                postMEM = postThings();
-            }
-            if ( postALU.instr != 0 ){
-                R[ MEM[postALU.instr].dest ] = postALU.value;
-                postALU = postThings();
-
-            }
-        }
-
+		}
+		void WB(){
+			if( postMEM.instr !=0 ) {
+				R[ MEM[postMEM.instr].dest ] = postMEM.value;
+				postMEM = postThings();
+			}
+			if( postALU.instr !=0 ) {
+				R[ MEM[postALU.instr].dest ] = postALU.value;
+				postALU = postThings();
+			}
+		}
 
         void IF(){
-
-
+            // grabs the first instruction
+			preIssue[0] = 1;
+            // for (int i = 0; i < 2; i++ ){
+            //     // preIssue[i] = MEM[PC].istr;
+            // }
+			false;
         }
+	};
+	processorState state;
+	state.MEM = MEM;
+	int cycle_counter = state.cycle;
+	while( counter != 1){ // state.PC != lastAddr
+		 cycle_counter = state.cycle;
+		 cout << "--------------------\nCycle: " << cycle_counter << endl;
+		// state.WB();
+	// 	// state.ALU();
+	// 	// state.MEM();
+	// 	// state.ISSUE();
+		state.IF();
 
-        
+		// printing the steps
 
-    };
+		stringstream ssl;
+		cout << endl << "Pre-Issue Buffer:\n";
+		for ( int r = 0; r <= 4; r++){
+			cout << "\tEntry " << r << ": ";
+			if(state.preIssue[r] == 1) {
+				cout << "\t[" << state.MEM[state.PC].istr << "]";
+			}
+			cout <<  ssl.str() << endl;
+			ssl.clear();
+		}
+		cout << "Pre_ALU Queue:" << endl;
+		for( int r = 0; r <= 1; r++){
+			cout << "\tEntry " << r << ": ";
+			if (state.preALU[r] == 1){
+				// for later stage
+			}
+			cout << ssl.str() << endl;
+			ssl.clear();
+		}
+		cout << "Post_ALU Queue:" << endl;
+		for( int r = 0; r <= 0; r++){
+			cout << "\tEntry " << r << ": ";
+			if (state.preALU[r] == 1){
+				// for later stage
+			}
+			cout << ssl.str() << endl;
+			ssl.clear();
+		}
+		cout << "Pre_MEM Queue:" << endl;
+		for( int r = 0; r <= 1; r++){
+			cout << "\tEntry " << r << ": ";
+			if (state.preALU[r] == 1){
+				// for later stage
+			}
+			cout << ssl.str() << endl;
+			ssl.clear();
+		}
+		cout << "Post_MEM Queue:" << endl;
+		for( int r = 0; r <= 0; r++){
+			cout << "\tEntry " << r << ": ";
+			if (state.preALU[r] == 1){
+				// for later stage
+			}
+			cout << ssl.str() << endl;
+			ssl.clear();
+		}
+		
+		// displays the register
+        ssl << "\nregisters:";
+        for( int i = 0; i < 32; i++ ){
+            if( i %8 == 0 )
+                ssl << "\nr"<<i<<":  ";
+            ssl << "\t" << state.R[i];
+            }
+	    cout  << ssl.str() << endl;
+		ssl.clear();
 
-
-
-
-
-
-    processorState state;
-    state.MEM = MEM;
-    // while ( true ){
-
-        // state.WB();
-
-
-    // }
-    // state.WB();
-
-    // for (int i = 96; i <= maxaddr; i += 4){
-    //     cout << MEM[i].out << endl;
-    // }
-
-    //sim!
-    // int temp = pbreakaddr; 
-    // processor P;
-    // int * point;
-    // while( true ){
-    //     instruction I = MEM[ P.PC ];
-    //     while( I.v == 0 ){ // tests valid bit and skips the first instruction due to it being a zero
-    //         P.PC +=4; // then increments key + 4 making the pc start at 100
-    //         I = MEM[P.PC]; // sets instruction I at value stored in "array" value's key
-    //     }
-    //     if( I.opcode == 40 ){ // ADDI
-    //         P.R[ I.rt ] =  P.R [I.rs]  + I.imm ;
-    //     } else if( I.opcode == 43 ) { // SW 
-    //         MEM[I.imm + P.R[I.rs]].asInt = P.R[I.rt];
-    //     } else if( I.opcode == 35){ // LW 
-    //         P.R[I.rt] = MEM[I.imm + P.R[I.rs]].asInt;
-    //     } else if( I.opcode == 33){ //BLTZ
-    //         if(P.R[I.rs] < 0){
-    //             P.PC = P.PC + I.imm*4;
-    //         }
-    //     } else if(( I.opcode == 32 ) && (I.func == 0)){ // SLL
-    //         if((I.shamt == 0) && (I.rs == 0) && (I.rt == 0)){ // NOP (similar as SLL)
-	// 	P.print(I);
-	// 	stringstream ssl;
-	// 	ssl << "\ndata:";
-	// 	for(int r = 0, temp = pbreakaddr; r <= incr; r ++, temp += 4 ){
-    //        		 if(r %8 == 0){
-    //            			 ssl << "\n" << temp;    
-    //         	}
-    //        	 ssl << "\t" <<  MEM[temp].asInt;    
-    //     	}
-	// 	P.cycle ++;
-	// 	P.PC += 4;
-	// 	continue;
-    //         }else{
-    //        P.R[I.rd] = P.R[I.rt] << I.shamt; 
-    //         }
-    //     } else if (( I.opcode == 32) && ( I.func == 34)){ // SUB
-    //         P.R[I.rd] = P.R[I.rs] - P.R[I.rt];
-    //     } else if ( I.opcode == 34){ // J
-    //         P.print( I );
-    //         P.PC = I.jaddr * 4;
-    //         stringstream ssl;
-    //         ssl << "\ndata:";
-    //         for(int r = 0, temp = pbreakaddr; r <= incr; r++, temp += 4){ // print the data secton
-    //             if(r %8 == 0){
-    //                 ssl << "\n" << temp;    
-    //             }
-    //         ssl << "\t" <<  MEM[temp].asInt;    
-    //     }
-	//     cout << ssl.str() << endl;
-	//     P.cycle ++;
-    //         continue;
-    //     } else if (( I.opcode == 32 ) && ( I.func == 32)){ // ADD
-    //         P.R[I.rd] = P.R[I.rs] + P.R[I.rt];
-    //     } else if (( I.opcode == 32 ) && ( I.func == 13 )){ // BREAK
-    //         P.print( I );
-    //         stringstream ssl;
-    //         ssl << "\ndata:";
-    //         for(int r = 0, temp = pbreakaddr; r <= incr; r ++, temp += 4 ){
-    //             if(r %8 == 0){
-    //                 ssl << "\n" << temp;    
-    //             }
-    //             ssl << "\t" <<  MEM[temp].asInt;     
-    //         }
-    //         cout << ssl.str() << "\n";
-    //         break;
-    //         false;
-    //     } else if ((I.opcode == 32) && (I.func == 8)){ // JR
-	//     P.print(I);
-	//     P.PC = P.R[I.rs];
-	//     stringstream ssl;
-	//     ssl << "\ndata:";
-	//     for(int r = 0; r <= incr; r++, temp += 4){
-	// 	if(r % 8 == 0){
-	// 	    ssl << "\n" << temp;	
-	// 	}
-	// 	ssl << "\t" << MEM[temp].asInt;
-	//     }
-	//     cout << ssl.str() << "\n";
-	//     P.cycle ++;
-	//     continue;
-    //     } else if ((I.opcode == 32) && (I.func == 2)){ // SRL
-    //         P.R[I.rd] = P.R[I.rt] >> I.shamt;
-    //     } else if((I.opcode == 60) && (I.func == 2)){ // MUL
-    //         P.R[I.rd] = P.R[I.rs] * P.R[I.rt];
-    //     } else if((I.opcode == 32) && (I.func == 10)){ // MOVZ
-    //         // not sure how to padd this out
-	//     P.R[I.rd] = P.R[I.rs] + P.R[I.rt];
-    //     } 
+		//displays the data
+		cout << "\nData";
+		for ( int i = breakAddr + 4, r = 0; r < (lastAddr-breakAddr)/4; i+=4, r++){
+			if( r % 8 == 0){
+				cout << endl << i << ":\t";
+			}
+			cout << MEM[i].intVal << "\t";
+		}
 
 
-       
-    //     P.print( I ); // prints out the registers and values in them along with instruction
-    //     stringstream ssl;
-    //         ssl << "\ndata:";
-    //     for(int r = 0, temp = pbreakaddr; r <= incr; r ++, temp += 4 ){
-    //         if(r %8 == 0){
-    //             ssl << "\n" << temp;    
-    //         }
-    //         ssl << "\t" <<  MEM[temp].asInt;    
-    //     }
-    //     cout << ssl.str();
-    //     cout << '\n';
-    //     P.PC+=4;
-    //     P.cycle ++ ;
-    //     //if(P.cycle >20) exit(0);// P.cycle > 2 
-    //}
+
+		state.PC += 4;
+		state.cycle += 1;
+		counter ++;
+
+    }
+
+
+					// Prints the data section
+        // stringstream ss1;
+        // ss1 << "====================\ncycle:" << state.cycle << "\t"
+        //     << "\t" << "\n\nregisters:";
+        // for( int i = 0; i < 32; i++ ){
+        //     if( i %8 == 0 )
+        //         ss1 << "\nr"<<i<<":  ";
+        //     ss1 << "\t" << state.R[i];
+        //         //ss1 << I.addr;// = address it is currently on
+        //     }
+	    // cout  << ss1.str() << endl;
+        // state.cycle ++;
+
+
+
+
+		/*      OLD CODE
+		instruction I = MEM[ PC ];
+		while( I.v == 0 ){
+			PC += 4;
+			I = MEM[ PC ];
+		}
+		PC += 4;
+		nextpc = PC;
+		if( (unsigned int) I.intVal == 2147483648 ){ //NOP
+		}
+		else if( I.opcode == 40 ){ //ADDI
+			R[ I.rt ] = R[ I.rs] + I.imm;
+		}
+		else if( I.opcode == 43 ){ //SW
+			//ss << "SW\tR" << rt << ", " <<imm << "(R" << rs << ")"; 
+			MEM[ R[I.rs] + I.imm ].intVal = R[ I.rt ];
+		}
+		else if( I.opcode == 35 ){
+			//ss << "LW\tR" << rt << ", " <<imm << "(R" << rs << ")"; 
+			R[I.rt] = MEM[ I.imm + R[I.rs]].intVal;
+		}
+		else if( I.opcode == 33 ){
+			//ss << "BLTZ\tR" << rs << ", #" <<target;
+			if (R[I.rs] < 0	)
+				nextpc = PC + I.target;
+		}
+		else if( I.opcode == 32 && I.func == 0 ){
+			//ss << "SLL\tR" << rd << ", R" << rt << ", #" << shamt; 
+			R[I.rd] = R[I.rt] << I.shamt;
+		}
+		else if( I.opcode == 32 && I.func == 2 ){
+			//ss << "SRL\tR" << rd << ", R" << rt << ", #" << shamt; 
+		}
+		else if( I.opcode == 32 && I.func == 34 ){
+			//1ss << "SUB\tR" << rd << ", R" << rs << ", R" << rt; 
+			R[I.rd] = R[I.rs] - R[I.rt];
+		}
+		else if( I.opcode == 32 && I.func == 32 ){
+			//ss << "ADD\tR" << rd << ", R" << rs << ", R" << rt; 
+			R[I.rd] = R[I.rs] + R[I.rt];
+		}
+		else if( I.opcode == 32 && I.func == 10 ){
+			//ss << "MOVZ\tR" << rd << ", R" << rs << ", R" << rt; 
+		}
+		else if( I.opcode == 60 && I.func == 2 ){
+			//ss << "MUL\tR" << rd << ", R" << rs << ", R" << rt; 
+		}
+		else if( I.opcode == 32 && I.func == 8 ){
+			//ss << "JR\tR" << rs; 
+		}
+		else if( I.opcode == 34){
+			//ss << "J\t#" << jTarget; 
+			nextpc = I.jTarget;
+
+		}
+		else if( I.opcode == 32 && I.func == 13 ){
+			//ss << "BREAK"; 
+		//	isBreak = true;
+		}
+		else {
+			printf ("Opcode %i func %i not implemented\n", I.opcode, I.func);
+			I.print();
+			exit(0);
+		}
+
+		cout << printState(  R, PC-4,  cycle, MEM,  breakAddr,  lastAddr ) << endl;
+		cycle ++;
+		if (PC == breakAddr + 4) break;
+		PC = nextpc;
+		//if( cycle >= 145) break;
+		*/
+	
+
 }
-
