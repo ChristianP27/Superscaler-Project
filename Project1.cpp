@@ -231,6 +231,7 @@ int main( ) // add arguments later
 		int PC = 96;
 		int cycle = 1;
 		unordered_map< int, instruction> MEM;
+		// unordered_map<int, preALU> instr;
         int preIssue[4] = {0};
 		int preALU[2] = {0};
 		int preMEM[2] = {0};
@@ -266,31 +267,40 @@ int main( ) // add arguments later
 			}
 		}
 
-        void IF(processorState state){
+        void IF(int cycle_counter){
 			int temp_counter;
+			int L =1;
             // grabs the first two instructions if there is nothing in the queue also 
 			// check to see if queue is full.
+			// if(cycle_counter == 1){
+
+			// }
 			for(int i = 0; i < sizeof(preIssue); i++){
-				if(preIssue[i] == 1){
+				if(preIssue[i] != 0){
 					temp_counter ++;
 					continue;
 				}
+				if((cycle_counter == 1) && (preIssue[i] == 0) && (L<=2)){
+					preIssue[i] = PC;
+					PC += 4;
+					L ++;
+				}
 
-			}
+		// 	}
 			if( temp_counter == 4){
 				nullptr;
 			}
-			else if ( temp_counter == 3){
-			preIssue[3] = 1; 	
-			}
-			else if ( temp_counter == 2){
-			preIssue[2] = 1; 
-			}
-			else if ( temp_counter == 1 ){
-			preIssue[1] = 1; 
-			}
-			else if ( temp_counter == 0){
-			preIssue[0] = 1;
+		// 	else if ( temp_counter == 3){
+		// 	preIssue[3] = 1; 	
+		// 	}
+		// 	else if ( temp_counter == 2){
+		// 	preIssue[2] = 1; 
+		// 	}
+		// 	else if ( temp_counter == 1 ){
+		// 	preIssue[1] = 1; 
+		// 	}
+		// 	else if ( temp_counter == 0){
+		// 	preIssue[0] = 1;
         }
 		}
 	};
@@ -304,7 +314,7 @@ int main( ) // add arguments later
 	// 	// state.ALU();
 	// 	// state.MEM();
 	// 	// state.ISSUE();
-		state.IF(state);
+		state.IF(cycle_counter);
 
 
 
@@ -312,17 +322,16 @@ int main( ) // add arguments later
 		// printing the steps
 		stringstream ssl;
 		cout << endl << "Pre-Issue Buffer:\n";
-		// for(int r = state.PC; )
-		for ( int r = 0; r <= 4; r++){
+		// for(int r = state.PC; r <= state.PC + 4; r+=4 ){
+			for ( int r = 0; r <= 4; r++){
 			cout << "\tEntry " << r << ": ";
-			if(state.preIssue[r] == 1) {
-				cout << "\t[" << state.MEM[state.PC].istr << "]";
+			if((state.preIssue[r] != 0)) {
+				cout << "\t[" << state.MEM[state.preIssue[r]].istr << "]";
+	
 			}
 			
-			// if(state.preIssue[r+1] == 1){
-			// 	cout << ""
-			// }
 			cout <<  ssl.str() << endl;
+		// }
 			ssl.clear();
 		}
 		cout << "Pre_ALU Queue:" << endl;
@@ -383,7 +392,7 @@ int main( ) // add arguments later
 
 
 
-		state.PC += 4;
+		// state.PC += 4;
 		state.cycle += 1;
 		counter ++;
 
