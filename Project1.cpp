@@ -267,7 +267,7 @@ int main( ) // add arguments later
 			}
 		}
 
-        void IF(int cycle_counter){
+        void IF(){
 			int temp_counter;
 			int L =1;
             // grabs the first two instructions if there is nothing in the queue also 
@@ -280,7 +280,7 @@ int main( ) // add arguments later
 					temp_counter ++;
 					continue;
 				}
-				if((cycle_counter == 1) && (preIssue[i] == 0) && (L<=2)){
+				if((cycle == 1) && (preIssue[i] == 0) && (L<=2)){
 					preIssue[i] = PC;
 					PC += 4;
 					L ++;
@@ -314,7 +314,7 @@ int main( ) // add arguments later
 	// 	// state.ALU();
 	// 	// state.MEM();
 	// 	// state.ISSUE();
-		state.IF(cycle_counter);
+		state.IF();
 
 
 
@@ -327,6 +327,15 @@ int main( ) // add arguments later
 			cout << "\tEntry " << r << ": ";
 			if((state.preIssue[r] != 0)) {
 				cout << "\t[" << state.MEM[state.preIssue[r]].istr << "]";
+				// if (state.MEM[state.preIssue[r]].rt == state.MEM[state.preIssue[r+1]].rs){
+				// 	for(int m = 0,  i=0; m <= sizeof(state.preMEM); m++){
+				// 		if((state.preMEM[m] == 0) && (i<2) ){
+				// 			state.preMEM[m] = state.preIssue[r];
+				// 			state.preIssue[r] = state.preIssue[r+1];
+				// 			state.preIssue[r+1] = 0;
+				// 	}
+				// 	}
+				// }
 	
 			}
 			
@@ -388,6 +397,18 @@ int main( ) // add arguments later
 				cout << endl << i << ":\t";
 			}
 			cout << MEM[i].intVal << "\t";
+		}
+		cout << endl;
+		for ( int r = 0; r <= 4; r++){
+		if (state.MEM[state.preIssue[r]].rt == state.MEM[state.preIssue[r+1]].rs){
+			for(int m = 0,  i=0; m <= sizeof(state.preMEM); m++){
+				if((state.preMEM[m] == 0) && (i<2) ){
+					state.preMEM[m] = state.preIssue[r];
+					state.preIssue[r] = state.preIssue[r+1];
+					state.preIssue[r+1] = 0;
+				}
+			}
+		}
 		}
 
 
