@@ -222,8 +222,8 @@ int main( ) // add arguments later
 	}
 	lastAddr = addr-8;
 
-	// for( int i = 96; i < lastAddr; i+=4 )
-	// 	cout << MEM[i].out << endl;
+	for( int i = 96; i < lastAddr+4; i+=4 )
+		cout << MEM[i].out << endl;
 
 	// make a register file and processor state elements
 	struct processorState{
@@ -266,36 +266,62 @@ int main( ) // add arguments later
 			}
 		}
 
-        void IF(){
-            // grabs the first instruction
+        void IF(processorState state){
+			int temp_counter;
+            // grabs the first two instructions if there is nothing in the queue also 
+			// check to see if queue is full.
+			for(int i = 0; i < sizeof(preIssue); i++){
+				if(preIssue[i] == 1){
+					temp_counter ++;
+					continue;
+				}
+
+			}
+			if( temp_counter == 4){
+				nullptr;
+			}
+			else if ( temp_counter == 3){
+			preIssue[3] = 1; 	
+			}
+			else if ( temp_counter == 2){
+			preIssue[2] = 1; 
+			}
+			else if ( temp_counter == 1 ){
+			preIssue[1] = 1; 
+			}
+			else if ( temp_counter == 0){
 			preIssue[0] = 1;
-            // for (int i = 0; i < 2; i++ ){
-            //     // preIssue[i] = MEM[PC].istr;
-            // }
-			false;
         }
+		}
 	};
 	processorState state;
 	state.MEM = MEM;
 	int cycle_counter = state.cycle;
-	while( counter != 1){ // state.PC != lastAddr
+	while( counter != 3){ // state.PC != lastAddr
 		 cycle_counter = state.cycle;
 		 cout << "--------------------\nCycle: " << cycle_counter << endl;
 		// state.WB();
 	// 	// state.ALU();
 	// 	// state.MEM();
 	// 	// state.ISSUE();
-		state.IF();
+		state.IF(state);
+
+
+
 
 		// printing the steps
-
 		stringstream ssl;
 		cout << endl << "Pre-Issue Buffer:\n";
+		// for(int r = state.PC; )
 		for ( int r = 0; r <= 4; r++){
 			cout << "\tEntry " << r << ": ";
 			if(state.preIssue[r] == 1) {
 				cout << "\t[" << state.MEM[state.PC].istr << "]";
 			}
+			
+			// if(state.preIssue[r+1] == 1){
+			// 	cout << ""
+			// }
 			cout <<  ssl.str() << endl;
 			ssl.clear();
 		}
@@ -362,6 +388,14 @@ int main( ) // add arguments later
 		counter ++;
 
     }
+
+
+
+
+
+
+
+
 
 
 					// Prints the data section
