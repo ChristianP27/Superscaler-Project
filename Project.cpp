@@ -458,6 +458,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 
     counter ++; // temp counter to stp the whille loop
     state.PC += 8;
+	state.cycle ++;
 
 
 
