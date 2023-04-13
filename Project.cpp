@@ -197,7 +197,7 @@ int main( )
         char * iPtr;
         iPtr = (char*)(void*) &i;
 	int addr = 96;
-        int FD = open("t1.bin" , O_RDONLY);
+        int FD = open("t4.bin" , O_RDONLY);
         // printf( "filename: %s", argv[2]);
 	int amt = 4;
         while( amt != 0 )
@@ -329,36 +329,35 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
             }
 
             // test to see if empty
-            if ( temp_counter != 0 ){ // not empty now do the given job
-                if ( (MEM[preIssue[1]].rs == MEM[preIssue[0]].rt) ){ // can i move both items or just one is there a dependency???
+            if ( temp_counter != 0 ) { // not empty now do the given job
+                if ( ((MEM[preIssue[1]].rs == MEM[preIssue[0]].rt)) ){ // can i move both items or just one is there a dependency???
                     // if this is true then only able to move the first on [0]
                     // check to see where to move it sw or lw or addi etc. MEM or ALU
                     if ( (MEM[preIssue[0]].opcode == 35) || (MEM[preIssue[0]].opcode == 43) ) { // check if LW or SW
-                        // for (int i = 0; i < 2; i++ ){ // make sure PreMEM isnt ocupied
-                        //    if ( preMEM[i] != 0 ){
-                        //         counter ++;
-                        //     }
-                        // }
-                        // if ( counter == 1 ){
-                        //     preMEM[1] = preIssue[0];
-                        // } else if ( counter == 2 ){
-                        //     nullptr;
-                        // }
                         preMEM[0] = preIssue[0]; // moves the one element
                         preIssue[0] = preIssue[1];
                         preIssue[1] = 0;
-                    }
+                    } else if (MEM[preIssue[0]].opcode == 40 || MEM[preIssue[0]].opcode == 40) {
+						preALU[0] = preIssue[0];
+						preIssue[0] = preIssue[1];
+						preIssue[1] = 0;
+					}
                 } else { // able to move both
-                     if ( (MEM[0].opcode == 35) || (MEM[0].opcode == 43) || (MEM[1].opcode == 43) || (MEM[1].opcode == 43)) { // check if LW or SW
+                     if ( (MEM[preIssue[0]].opcode == 35) || (MEM[preIssue[0]].opcode == 43) || (MEM[preIssue[1]].opcode == 35) || (MEM[preIssue[1]].opcode == 43)) { // check if LW or SW
                         preMEM[0] = preIssue[0];
                         preMEM[1] = preIssue[1];
                         preIssue[0] = 0;
                         preIssue[1] = 0;
-                    }
-                }
-            } else{ // empty dont do anything
+                    } else if ((MEM[preIssue[0]].opcode == 40) || (MEM[preIssue[0]].opcode == 32) || (MEM[preIssue[1]].opcode == 40) || (MEM[preIssue[1]].opcode == 32)) {
+						preALU[0] = preIssue[0];
+						preIssue[0] = preIssue[1];
+						preIssue[1] = 0;
+                	}
+            	} 
+			
+			} else { // empty dont do anything
             	nullptr; 
-            }
+		}
 }
 
         // void MEM(){
@@ -368,7 +367,6 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
         void ALU(){
 
         }
-
 	};
 	processorState state;
 	state.MEM = MEM;
@@ -458,6 +456,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 
     counter ++; // temp counter to stp the whille loop
     state.PC += 8;
+	state.cycle++;
 
 
 
