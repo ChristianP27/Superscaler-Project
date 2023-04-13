@@ -262,13 +262,13 @@ int main( )
 		// 	}
 		// }
 
-void IF(){
-            int add_holder = PC;
-            int add_holder1 = PC + 4;
-            int temp_counter;
-            int L = 0;
-            int sec_Counter = 0;
-
+void IF(bool doneBreak, int breakAddr){
+            // int add_holder = PC;
+            // int add_holder1 = PC + 4;
+            int temp_counter = 0;
+            // int L = 0;
+            int sec_Counter;
+if (PC != breakAddr ){
             for (int i = 0; i < 4 ; i++ ) { // checks the contents in the array counts how many NON-zeros
                     if(preIssue[i] != 0){
                         temp_counter ++;
@@ -281,37 +281,20 @@ void IF(){
                     } else {
 
                     // which arrray slot has a zero
-                    for ( int i = 0; i < 4; i++ ){ // places the first address into the array slot
-                        if( (preIssue[i] == 0) && (L != 1)){
-                            preIssue[i] = add_holder;
-                            add_holder = 0;
-                            L ++;
-                        }
-                        else if ( (preIssue[i] == 0) && ( sec_Counter != 1 )){ // do the second instruction
-                            preIssue[i] = add_holder1;
-                            sec_Counter ++;
-                            add_holder1 = 0; 
-
-                        }
+                    for ( int i = temp_counter, sec_Counter = PC; i < 2 || temp_counter > 4 ; i++){ //pulls the first two instructions
+                       
+                            preIssue[i] = sec_Counter;
+							sec_Counter += 4;
+                            
+                        
                     }
                     }
                     
-
-
-                    // else if ( temp_counter == 3 ){
-                    //     preIssue[3] = ;
-                    // }
-                    // else if ( temp_counter = 2 ){
-                    //     preIssue[2] = PC;
-                    // }
-                    // else if ( temp_counter = 1 ){
-                    //     preIssue[1] = PC;
-                    // }
-            // preIssue[i] = PC;
-        
+}     
 }
 
 void ISSUE(){ // move the instructions to the given areas needed / Job divider
+
         int temp_counter = 0;
         int counter = 0;
 
@@ -358,6 +341,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 			} else { // empty dont do anything
             	nullptr; 
 		}
+
 }
 
         // void MEM(){
@@ -371,13 +355,13 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 	processorState state;
 	state.MEM = MEM;
     int counter = 0;
-	while( counter != 3 ){
+	while( counter != 8 ){
 		
 		// state.WB();
 		// state.ALU();
 		// state.MEM();
 		
-		state.IF();
+		state.IF(doneBreak, breakAddr);
 
         // printing the data
 
@@ -386,7 +370,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
         cout << endl << "Pre-Issue Buffer:\n";
         for ( int i = 0; i < 4; i ++){
             cout << "\tEntry " << i << ": ";
-            if ( state.preIssue[i] == 0 ) {
+            if ( (state.preIssue[i] == 0) && doneBreak ) {
                 nullptr;
             }
             else {
