@@ -197,7 +197,7 @@ int main( )
         char * iPtr;
         iPtr = (char*)(void*) &i;
 	int addr = 96;
-        int FD = open("t4.bin" , O_RDONLY);
+        int FD = open("t2.bin" , O_RDONLY);
         // printf( "filename: %s", argv[2]);
 	int amt = 4;
         while( amt != 0 )
@@ -316,8 +316,8 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
         int counter = 0;
 
         // temp storage for the values
-        int s0 = preIssue[0];
-        int s1 = preIssue[1];
+        int s0 = preIssue[0]; // first instruction that sent out
+        int s1 = preIssue[1]; // second instruction being held
         int s2 = preIssue[2];
         int s3 = preIssue[3];
 
