@@ -316,10 +316,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
         int counter = 0;
 
         // temp storage for the values
-        int s0 = preIssue[0]; // first instruction that sent out
-        int s1 = preIssue[1]; // second instruction being held
-        int s2 = preIssue[2];
-        int s3 = preIssue[3];
+        
 
             for (int i = 0; i < 4 ; i++ ) { // checks the contents in the array is it empty is the job list empty
                     if(preIssue[i] != 0){
@@ -330,9 +327,11 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 
             // test to see if empty
             if ( temp_counter != 0 ) { // not empty now do the given job
-                if ( ((MEM[preIssue[1]].rs == MEM[preIssue[0]].rt)) ){ // can i move both items or just one is there a dependency???
-                    // if this is true then only able to move the first on [0]
-                    // check to see where to move it sw or lw or addi etc. MEM or ALU
+                if (((MEM[preIssue[1]].rs == MEM[preIssue[0]].rt) || (MEM[preIssue[1]].imm == MEM[preIssue[0]].rt)) || 
+				((MEM[preIssue[0]].opcode == 40) && ((MEM[preIssue[0]].rs == MEM[preALU[0]].rt) || (MEM[preIssue[0]].rs == MEM[preMEM[0]].rt))) || 
+				((MEM[preIssue[0]].opcode == 43) && ((MEM[preIssue[0]].rt == MEM[preALU[0]].rt) || (MEM[preIssue[0]].rt == MEM[preMEM[0]].rt))) ||
+				((MEM[preIssue[0]].opcode == 32) && ((MEM[preIssue[0]].rs == MEM[preALU[0]].rt) || (MEM[preIssue[0]].rs == MEM[preMEM[0]].rt))) ){ // can i move both items or just one is there a dependency???
+
                     if ( (MEM[preIssue[0]].opcode == 35) || (MEM[preIssue[0]].opcode == 43) ) { // check if LW or SW
                         preMEM[0] = preIssue[0]; // moves the one element
                         preIssue[0] = preIssue[1];
