@@ -357,7 +357,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
                     }
                 }
             } else{ // empty dont do anything
-            nullptr; 
+            	nullptr; 
             }
 }
 
