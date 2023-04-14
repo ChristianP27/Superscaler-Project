@@ -222,8 +222,8 @@ int main( )
 	}
 	lastAddr = addr-4;
 
-	// for( int i = 96; i < lastAddr; i+=4 )
-	// 	cout << MEM[i].out << endl;
+	for( int i = 96; i < lastAddr; i+=4 )
+		cout << MEM[i].out << endl;
 
 	// make a register file and processor state elements
 	struct processorState{
@@ -282,90 +282,152 @@ if (PC != breakAddr ){
                     } else {
 
                     
-                    for ( int i = temp_counter, sec_Counter = PC; i < 2 || temp_counter > 4 ; i++){ //pulls the first two instructions
-                       if ( preIssue[i] == 0 ){
-						 preIssue[i] = sec_Counter;
+                    for ( int r = temp_counter,  incr = 0, sec_Counter = PC; incr < 2 || temp_counter > 4 ; incr++, r++){ //pulls the first two instructions
+                       if ( preIssue[r] == 0 ){
+							if ( (sec_Counter == breakAddr ) || (MEM[sec_Counter].opcode == 33) || (MEM[sec_Counter].opcode == 34) || MEM[sec_Counter].v == 0){
+								r --;
+								continue;
+							} else {
+							preIssue[r] = sec_Counter;
 							sec_Counter += 4; 
+							}
 					   }
                            
                     }
                     }
                     
-}     
+}    
+PC += 8; 
 }
 
 void ISSUE(){ // move the instructions to the given areas needed / Job divider
 
         int temp_counter = 0; // Pre_Issue counter
         int counter = 0; // Pre_MEM counter
-		int alu_counter = 0; // Pre_ALU counter
+		int inc = 0; // Pre_ALU counter
+		bool if_true = false; // if its full or not
+		bool cmove1 = true; // only able to move top 1 or none
+		// bool cmove2 = false; // no depenedency
 
 
-        // temp storage for the values
-        int s0 = preIssue[0]; // first instruction that sent out
-        int s1 = preIssue[1]; // second instruction being held
-        int s2 = preIssue[2];
-        int s3 = preIssue[3];
+        // checks for dependencies for moing the items
 
-            for (int i = 0; i < 4 ; i++ ) { 
-                    if(preIssue[i] != 0){
-                        temp_counter ++;
-                        continue;
-                    }
-            }
-
-            // test to see if empty
-            if ( temp_counter != 0 ) { // not empty now do the given job
-				for (int r = 0; r < 2; r++){
-					if ( preMEM[r] != 0){
-						counter ++;
-						continue;
-					}
-				}
-				for ( int m = alu_counter; m < 2; m++ ){ // is the PRE alu full or not
-					if ( preALU[m] != 0 ){
-						alu_counter ++;
-						continue;
-					}
-				}
-				
-					if ( (counter != 2) && (alu_counter != 2) ){
-					if ( (((MEM[preIssue[1]].rs == MEM[preIssue[0]].rt)) || 
-						( MEM[preIssue[0]].rs == MEM[preALU[0]].rt) ||
-						( MEM[preIssue[0]].rs == MEM[preMEM[0]].rt) ) ||
-						((MEM[preIssue[0]].opcode == 43) && (MEM[preIssue[0]].rt == MEM[preMEM[0]].rt))){ // can i move both items or just one is there a dependency???
-						// if this is true then only able to move the first on [0]
-						// check to see where to move it sw or lw or addi etc. MEM or ALU
-						if ( ((MEM[preIssue[0]].opcode == 35) || (MEM[preIssue[0]].opcode == 43))  ) { // check if LW or SW
-							if ( counter == 1 ){
-							preIssue[0] = preIssue[1];
-							preMEM[1] = preIssue[0]; // moves the one element
-							}
-						} else if (MEM[preIssue[0]].opcode == 40 || MEM[preIssue[0]].opcode == 40) {
-							
-							preALU[0] = preIssue[0];
-							preIssue[0] = preIssue[1];
-							preIssue[1] = 0;
-						}
-					} else { // able to move both
-						if ( (MEM[preIssue[0]].opcode == 35) || (MEM[preIssue[0]].opcode == 43) || (MEM[preIssue[1]].opcode == 35) || (MEM[preIssue[1]].opcode == 43)) { // check if LW or SW
-							preMEM[0] = preIssue[0];
-							preMEM[1] = preIssue[1];
-							preIssue[0] = 0;
-							preIssue[1] = 0;
-						} else if ((MEM[preIssue[0]].opcode == 40) || (MEM[preIssue[0]].opcode == 32) || (MEM[preIssue[1]].opcode == 40) || (MEM[preIssue[1]].opcode == 32)) {
-							preALU[0] = preIssue[0];
-							preALU[1] = preIssue[1];
-							preIssue[1] = 0;
-							preIssue[0] = 0;
-						}
+            if ( (!if_true) && (cmove1)) { // checking to see if the contents can be moved
+				// conditions to check to see if we can move the items
+				if ( MEM[preIssue[0]].opcode == 43 ){ // if SW check to see it can move or not can first instr go??
+					if ( MEM[preIssue[0]].rt == MEM[preMEM[0]].rt ){ // 
+						if_true = true; // cant move the first intr
+						cmove1 = false;
+						// cmove2 = false;
+					} else if ( MEM[preIssue[0]].rt == MEM[preALU[0]].rt){
+						if_true = true; // cant move the first instr
+						// cmove2 = false;
+						cmove1 = false;
 					} 
+				} else if ( MEM[preIssue[1]].opcode == 43){ // pre_issue [1] == sw
+					if ( MEM[preIssue[1]].rt == MEM[preMEM[0]].rt){
+						cmove1 = true; // if this happesn only first instr can move
+						// cmove2 = false;
+					} else if (MEM[preIssue[1]].rt == MEM[preIssue[0]].rt){
+						cmove1 = true; // can only move 1
+						// cmove2 = false;
+					} else if ( MEM[preIssue[1]].rt == MEM[preALU[0]].rt ){
+						cmove1 = true;
+						// cmove2 = false;
 					}
+				} else { // check the dependancy normaly
+					if ( MEM[preIssue[0]].rs == MEM[preMEM[0]].rt){
+						if_true = true; //cant move a single ister from preissue
+						cmove1 = false;
+						// cmove2 = false;
+					} else if ( MEM[preIssue[0]].rs == MEM[preALU[0]].rt){
+						if_true = true; // cant move a single instr
+						cmove1 = false;
+					} else if ( MEM[preIssue[1]].rs == MEM[preIssue[0]].rt){
+						cmove1 = true;
+						
+					} 
+
+				}
 				
-			} else { // empty dont do anything
-            	nullptr; 
-		}
-		PC += 4;
+			}
+
+			while ( (preIssue[0] != 0) && (if_true != true) && (inc != 2) ) { // test to see if the destination places are full and move them
+
+			 // looks att all the elements in the alu and mem to see what is empty
+				for ( int i = 0; i < 2; i++ ){
+					if ( preALU[i] != 0 ){
+						counter ++;
+					}
+					if ( preMEM[i] != 0 ){
+						temp_counter ++;
+					}
+
+				}
+
+				if ( cmove1 ) {
+					if ( (MEM[preIssue[0]].opcode == 43) || (MEM[preIssue[0]].opcode == 35) ) { // if it accesses memory then seend to the pre_mem unit
+					if ( temp_counter == 2) { // see if we can move the item ( is the queue full)
+						if_true = true; // cant do anything the pre_MEM is full
+						continue;
+					} else {
+						preMEM[temp_counter] = preIssue[0]; // moves pre issue[0] to mem of the slot that doesnt have a value
+						preIssue[0] = preIssue[1];// moves the pre issues up 1
+						preIssue[1] = preIssue[2];
+						preIssue[2] = preIssue[3];
+						inc ++;
+						inc ++;
+					}
+				} else { // test the alu queue
+					if ( counter == 2 ) {
+						if_true = true;
+						continue;
+					} else {
+						preALU[counter] = preIssue[0];
+						preIssue[0] = preIssue[1];// moves the pre issues up 1
+						preIssue[1] = preIssue[2];
+						preIssue[2] = preIssue[3];
+						inc ++;
+						inc ++;
+					}
+				}
+
+					
+				} else {
+					if ( (MEM[preIssue[0]].opcode == 43) || (MEM[preIssue[0]].opcode == 35) ) { // if it accesses memory then seend to the pre_mem unit
+					if ( temp_counter == 2) { // see if we can move the item ( is the queue full)
+						if_true = true; // cant do anything the pre_MEM is full
+						continue;
+					} else {
+						preMEM[temp_counter] = preIssue[0]; // moves pre issue[0] to mem of the slot that doesnt have a value
+						preIssue[0] = preIssue[1];// moves the pre issues up 1
+						preIssue[1] = preIssue[2];
+						preIssue[2] = preIssue[3];
+						
+					}
+				} else { // test the alu queue
+					if ( counter == 2 ) {
+						if_true = true;
+						continue;
+					} else {
+						preALU[counter] = preIssue[0];
+						preIssue[0] = preIssue[1];// moves the pre issues up 1
+						preIssue[1] = preIssue[2];
+						preIssue[2] = preIssue[3];
+						
+					}
+				}
+
+					inc + 1;
+				}
+
+			}
+
+
+			
+		
+			
+		// PC += 4;
 
 }
 
@@ -374,7 +436,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
         // }
 
         void ALU(){
-
+		
         }
 	};
 	processorState state;
@@ -385,7 +447,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 		// state.WB();
 		// state.ALU();
 		// state.MEM();
-		
+		state.ISSUE();
 		state.IF(doneBreak, breakAddr);
 
         // printing the data
@@ -460,11 +522,14 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 
         // END OF PRINT DATA//////////
 
-        state.ISSUE(); // moves the data to needed areas
+        // state.ISSUE(); // moves the data to needed areas
         // state.MEM(); // activates the memory access and grabs/ stores the data
 
     counter ++; // temp counter to stp the whille loop
 	state.cycle++;
+	if ( state.PC == breakAddr){
+		break;
+	}
 
 
 
