@@ -8,7 +8,7 @@
 using namespace std;
 
 struct instruction{
-	int v,rs,rd,rt,shamt, func, opcode, imm, target, intVal, addr, jTarget,
+	int v,rs,rd,rt,shamt, func, opcode, imm, target, intVal, addr, jTarget, memdest,
 	    dest=-1, src1=-1, src2=-1;
 	string out, bitstr, istr;
 	bool isBreak;
@@ -28,6 +28,7 @@ struct instruction{
 		jTarget = ui <<6 >> 4;
 		shamt = ui << 21 >> 27;
 		func = ui <<26 >> 26;
+		memdest = imm + rs;
 		if( doneBreak ){
 			stringstream ss;
 			ss << "\t"<<addr << "\t" << i; 
@@ -197,7 +198,7 @@ int main( )
         char * iPtr;
         iPtr = (char*)(void*) &i;
 	int addr = 96;
-        int FD = open("t2.bin" , O_RDONLY);
+        int FD = open("t1.bin" , O_RDONLY);
         // printf( "filename: %s", argv[2]);
 	int amt = 4;
         while( amt != 0 )
@@ -280,13 +281,13 @@ if (PC != breakAddr ){
                         nullptr;
                     } else {
 
-                    // which arrray slot has a zero
+                    
                     for ( int i = temp_counter, sec_Counter = PC; i < 2 || temp_counter > 4 ; i++){ //pulls the first two instructions
-                       
-                            preIssue[i] = sec_Counter;
-							sec_Counter += 4;
-                            
-                        
+                       if ( preIssue[i] == 0 ){
+						 preIssue[i] = sec_Counter;
+							sec_Counter += 4; 
+					   }
+                           
                     }
                     }
                     
@@ -295,8 +296,10 @@ if (PC != breakAddr ){
 
 void ISSUE(){ // move the instructions to the given areas needed / Job divider
 
-        int temp_counter = 0;
-        int counter = 0;
+        int temp_counter = 0; // Pre_Issue counter
+        int counter = 0; // Pre_MEM counter
+		int alu_counter = 0; // Pre_ALU counter
+
 
         // temp storage for the values
         int s0 = preIssue[0]; // first instruction that sent out
@@ -304,7 +307,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
         int s2 = preIssue[2];
         int s3 = preIssue[3];
 
-            for (int i = 0; i < 4 ; i++ ) { // checks the contents in the array is it empty is the job list empty
+            for (int i = 0; i < 4 ; i++ ) { 
                     if(preIssue[i] != 0){
                         temp_counter ++;
                         continue;
@@ -313,34 +316,56 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 
             // test to see if empty
             if ( temp_counter != 0 ) { // not empty now do the given job
-                if ( ((MEM[preIssue[1]].rs == MEM[preIssue[0]].rt)) ){ // can i move both items or just one is there a dependency???
-                    // if this is true then only able to move the first on [0]
-                    // check to see where to move it sw or lw or addi etc. MEM or ALU
-                    if ( (MEM[preIssue[0]].opcode == 35) || (MEM[preIssue[0]].opcode == 43) ) { // check if LW or SW
-                        preMEM[0] = preIssue[0]; // moves the one element
-                        preIssue[0] = preIssue[1];
-                        preIssue[1] = 0;
-                    } else if (MEM[preIssue[0]].opcode == 40 || MEM[preIssue[0]].opcode == 40) {
-						preALU[0] = preIssue[0];
-						preIssue[0] = preIssue[1];
-						preIssue[1] = 0;
+				for (int r = 0; r < 2; r++){
+					if ( preMEM[r] != 0){
+						counter ++;
+						continue;
 					}
-                } else { // able to move both
-                     if ( (MEM[preIssue[0]].opcode == 35) || (MEM[preIssue[0]].opcode == 43) || (MEM[preIssue[1]].opcode == 35) || (MEM[preIssue[1]].opcode == 43)) { // check if LW or SW
-                        preMEM[0] = preIssue[0];
-                        preMEM[1] = preIssue[1];
-                        preIssue[0] = 0;
-                        preIssue[1] = 0;
-                    } else if ((MEM[preIssue[0]].opcode == 40) || (MEM[preIssue[0]].opcode == 32) || (MEM[preIssue[1]].opcode == 40) || (MEM[preIssue[1]].opcode == 32)) {
-						preALU[0] = preIssue[0];
-						preIssue[0] = preIssue[1];
-						preIssue[1] = 0;
-                	}
-            	} 
-			
+				}
+				for ( int m = alu_counter; m < 2; m++ ){ // is the PRE alu full or not
+					if ( preALU[m] != 0 ){
+						alu_counter ++;
+						continue;
+					}
+				}
+				
+					if ( (counter != 2) && (alu_counter != 2) ){
+					if ( (((MEM[preIssue[1]].rs == MEM[preIssue[0]].rt)) || 
+						( MEM[preIssue[0]].rs == MEM[preALU[0]].rt) ||
+						( MEM[preIssue[0]].rs == MEM[preMEM[0]].rt) ) ||
+						((MEM[preIssue[0]].opcode == 43) && (MEM[preIssue[0]].rt == MEM[preMEM[0]].rt))){ // can i move both items or just one is there a dependency???
+						// if this is true then only able to move the first on [0]
+						// check to see where to move it sw or lw or addi etc. MEM or ALU
+						if ( ((MEM[preIssue[0]].opcode == 35) || (MEM[preIssue[0]].opcode == 43))  ) { // check if LW or SW
+							if ( counter == 1 ){
+							preIssue[0] = preIssue[1];
+							preMEM[1] = preIssue[0]; // moves the one element
+							}
+						} else if (MEM[preIssue[0]].opcode == 40 || MEM[preIssue[0]].opcode == 40) {
+							
+							preALU[0] = preIssue[0];
+							preIssue[0] = preIssue[1];
+							preIssue[1] = 0;
+						}
+					} else { // able to move both
+						if ( (MEM[preIssue[0]].opcode == 35) || (MEM[preIssue[0]].opcode == 43) || (MEM[preIssue[1]].opcode == 35) || (MEM[preIssue[1]].opcode == 43)) { // check if LW or SW
+							preMEM[0] = preIssue[0];
+							preMEM[1] = preIssue[1];
+							preIssue[0] = 0;
+							preIssue[1] = 0;
+						} else if ((MEM[preIssue[0]].opcode == 40) || (MEM[preIssue[0]].opcode == 32) || (MEM[preIssue[1]].opcode == 40) || (MEM[preIssue[1]].opcode == 32)) {
+							preALU[0] = preIssue[0];
+							preALU[1] = preIssue[1];
+							preIssue[1] = 0;
+							preIssue[0] = 0;
+						}
+					} 
+					}
+				
 			} else { // empty dont do anything
             	nullptr; 
 		}
+		PC += 4;
 
 }
 
@@ -439,7 +464,6 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
         // state.MEM(); // activates the memory access and grabs/ stores the data
 
     counter ++; // temp counter to stp the whille loop
-    state.PC += 8;
 	state.cycle++;
 
 
