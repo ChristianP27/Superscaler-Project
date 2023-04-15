@@ -198,7 +198,7 @@ int main( )
 	char * iPtr;
 	iPtr = (char*)(void*) &i;
 	int addr = 96;
-        int FD = open("t1.bin" , O_RDONLY);
+        int FD = open("t2.bin" , O_RDONLY);
         // printf( "filename: %s", argv[2]);
 	int amt = 4;
         while( amt != 0 )
@@ -273,6 +273,7 @@ if (PC != breakAddr ){
                        if ( preIssue[r] == 0 ){
 							if ( (sec_Counter == breakAddr ) || (MEM[sec_Counter].opcode == 33) || (MEM[sec_Counter].opcode == 34) || MEM[sec_Counter].v == 0){
 								r --;
+								PC = MEM[preIssue[r-1]].jTarget;
 								continue;
 							} else {
 							preIssue[r] = sec_Counter;
@@ -285,6 +286,7 @@ if (PC != breakAddr ){
                     
 }    
 PC += 8; 
+				
 }
 
 void ISSUE(){ // move the instructions to the given areas needed / Job divider
@@ -306,11 +308,19 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 						no_move = true; // cant move the first intr
 						cmove1 = false;
 						// cmove2 = false;
+					} else if ( MEM[preIssue[0]].rt == MEM[postMEM.instr].rt ){ // 
+						no_move = true; // cant move the first intr
+						cmove1 = false;
+						// cmove2 = false;
 					} else if ( MEM[preIssue[0]].rt == MEM[preALU[0]].rt){
 						no_move = true; // cant move the first instr
 						// cmove2 = false;
 						cmove1 = false;
-					} 
+					} else if ( MEM[preIssue[0]].rt == MEM[postMEM.instr].rt){
+						no_move = true; // cant move the first instr
+						// cmove2 = false;
+						cmove1 = false;
+					}
 				} else if ( MEM[preIssue[1]].opcode == 43){ // pre_issue [1] == sw
 					if ( MEM[preIssue[1]].rt == MEM[preMEM[0]].rt){
 						cmove1 = true; // if this happesn only first instr can move
@@ -339,7 +349,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 			}
 
 			while ((inc != 2)) { // test to see if the destination places are full and move them
-			while (inc != 2) {
+			
 				 // test to see if the destination places are full and move them
 
 			 // looks att all the elements in the alu and mem to see what is empty
@@ -353,7 +363,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 
 				}
 
-				if ( cmove1 ) {
+				if ( cmove1  ) {
 					if ( (MEM[preIssue[0]].opcode == 43) || (MEM[preIssue[0]].opcode == 35) ) { // if it accesses memory then seend to the pre_mem unit
 					if ( temp_counter == 2) { // see if we can move the item ( is the queue full)
 						no_move = true; // cant do anything the pre_MEM is full
@@ -381,7 +391,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 				}
 
 					
-				} else {
+				} else  {
 					 if ( (MEM[preIssue[0]].opcode == 43) || (MEM[preIssue[0]].opcode == 35) ) { // if it accesses memory then seend to the pre_mem unit
 					if ( temp_counter == 2) { // see if we can move the item ( is the queue full)
 						no_move = true; // cant do anything the pre_MEM is full
@@ -414,6 +424,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 		
 			
 		// PC += 4;
+				
 
 }
 
@@ -422,20 +433,25 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
         // }
 
         void MEMORY() {
-			if (postMEM.value != 0)
+			if (postMEM.value == 0){
 				if (preMEM[0] != 0) {
 					R[MEM[preMEM[0]].rt] = MEM[MEM[preMEM[0]].imm + R[MEM[preMEM[0]].rs]].imm;
 					postMEM.value = R[MEM[preMEM[0]].rt];
 					postMEM.instr = preMEM[0];
 					preMEM[0] = preMEM[1];
+					// preMEM[1] = 0;
 				}
 
 				else {
 					nullptr;
 				}
+			}
         }
 
         void ALU(){
+			postALU.instr = 0;
+			postALU.value = 0;
+			
 			if ( preALU[0] != 0){
 				if(postALU.value == 0) {
 					do {
@@ -448,15 +464,15 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 						}
 
 					} while( postALU.value == 0);
+					// postALU.value = ;
+					postALU.instr = preALU[0];
+					// preALU[0] = preALU[1];
 				}
 			} else {
 				nullptr;
 			}
 
 			// move the data to the post_alu
-			postALU.value = 1;
-			postALU.instr = preALU[0];
-			preALU[0] = preALU[1];
 
         }
 	};
@@ -512,7 +528,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
         for ( int i = 0; i < 1; i++ ){
             cout << "\tEntry " << i << ": ";
             if ( state.postALU.value != 0 ){
-                cout << "\t[" << state.MEM[state.postALU.value].istr << "]";
+                cout << "\t[" << state.MEM[state.postALU.instr].istr << "]";
             }
             cout << endl;
         }
@@ -539,7 +555,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
             if ( state.postMEM.value == 0 ){
                 nullptr;
             } else {
-                cout << "\t[" << state.MEM[state.postMEM.value].istr << "]";
+                cout << "\t[" << state.MEM[state.postMEM.instr].istr << "]";
             }
             cout << endl;
         }
@@ -569,6 +585,8 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 
     counter ++; // temp counter to stp the whille loop
 	state.cycle++;
+	state.preMEM[1] = 0;
+	
 	if ( state.PC == breakAddr){
 		break;
 	}
