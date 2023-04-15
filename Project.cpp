@@ -187,7 +187,7 @@ string printState( const int R[], const int PC, const int cycle, unordered_map< 
 
 }	
 
-int main( )
+int main(int arg, char* argv[])
 {
 	unordered_map< int, instruction> MEM;
 	bool doneBreak = false;
@@ -198,7 +198,7 @@ int main( )
 	char * iPtr;
 	iPtr = (char*)(void*) &i;
 	int addr = 96;
-        int FD = open("t2.bin" , O_RDONLY);
+        int FD = open(argv[2], O_RDONLY);
         // printf( "filename: %s", argv[2]);
 	int amt = 4;
         while( amt != 0 )
