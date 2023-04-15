@@ -560,29 +560,30 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
             cout << endl;
         }
 
-		stringstream ssl;
+		// stringstream ssl;
 		cout << "\n\nregisters:";
             for ( int i = 0; i < 32; i++ ){
-                if( i % 8 == 0 ) ssl << "\nr" << i << ":";
-                ssl << "\t" << state.R[i];
+                if( i % 8 == 0 ) cout << "\nr" << i << ":";
+                cout << "\t" << state.R[i];
             }
-            cout << ssl.str() << endl;
-			ssl.clear();
+            // cout << ssl.str() << endl;
+			// ssl.clear();
 
-		for (int r = 0, temp = breakAddr; r <= increment; r++, temp += 4) {
-                   if ((r % 8) == 0) {
-                      cout << endl << temp << ":";
-		   }
-
-		   cout << "\t" << MEM[temp].imm;
-		}
+		// stringstream ss1;
+		// cout << "\ndata:";
+		// for (int r = 0, temp = breakAddr; r <= increment; r++, temp += 4) {
+        //            if ((r % 8) == 0) {
+        //               cout << endl << temp << ":";
+		//    }
+		//    cout << "\t" << state.MEM[temp].imm;
+		// }
 
 
         // END OF PRINT DATA//////////
 
         // state.ISSUE(); // moves the data to needed areas
         // state.MEMORY(); // activates the memory access and grabs/ stores the data
-
+	cout << endl;
     counter ++; // temp counter to stp the whille loop
 	state.cycle++;
 	state.preMEM[1] = 0;
