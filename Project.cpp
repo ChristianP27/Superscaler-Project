@@ -49,8 +49,8 @@ struct instruction{
 				istr = "Invalid Instruction";
 			}
 			else if( ui == 2147483648 ){
-                                stringstream ss;
-                                ss << "NOP";
+				stringstream ss;
+				ss << "NOP";
 				out = out + ss.str();
 				istr = ss.str();
                         }
@@ -193,10 +193,10 @@ int main( )
 	bool doneBreak = false;
 	int breakAddr = 0;
 	int lastAddr = 0;
-        char buffer[4];
-        int i;
-        char * iPtr;
-        iPtr = (char*)(void*) &i;
+	char buffer[4];
+	int i;
+	char * iPtr;
+	iPtr = (char*)(void*) &i;
 	int addr = 96;
         int FD = open("t1.bin" , O_RDONLY);
         // printf( "filename: %s", argv[2]);
@@ -222,11 +222,11 @@ int main( )
 	}
 	lastAddr = addr-4;
 
-	// for( int i = 96; i < lastAddr; i+=4 )
-	// 	cout << MEM[i].out << endl;
+	for( int i = 96; i < lastAddr; i+=4 )
+		cout << MEM[i].out << endl;
 
 	// make a register file and processor state elements
-	struct processorState{
+	struct processorState {
 		int R[32] ={0};
 		int PC = 96;
 		int cycle = 1;
@@ -239,19 +239,6 @@ int main( )
 		};
 		postThings postALU, postMEM;
 		
-		// bool XBWcheck( int reg, int issuePos ){
-		// 	if( reg <0 ) return false;
-		// 	for( int i = issuePos-1; i >=0; i-- ){
-		// 		if( reg == MEM[preIssue[i]].dest ) return true;
-		// 	}
-		// 	for( int i = 0; i < 2; i++ ){
-		// 		if( reg == MEM[preALU[i]].dest ) return true;
-		// 		if( reg == MEM[preMEM[i]].dest ) return true;
-		// 	}
-		// 	if( reg == MEM[postALU.instr].dest ) return true;
-		// 	if( reg == MEM[postMEM.instr].dest ) return true;
-		// 	return false;
-		// }
 		void WB(){
 			if( postMEM.instr !=0 ) {
 				R[ MEM[postMEM.instr].dest ] = postMEM.value;
@@ -345,7 +332,6 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 						cmove1 = false;
 					} else if ( MEM[preIssue[1]].rs == MEM[preIssue[0]].rt){
 						cmove1 = true;
-						
 					} 
 
 				}
@@ -353,6 +339,8 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 			}
 
 			while ((inc != 2)) { // test to see if the destination places are full and move them
+			while (inc != 2) {
+				 // test to see if the destination places are full and move them
 
 			 // looks att all the elements in the alu and mem to see what is empty
 				for ( int i = 0; i < 2; i++ ){
@@ -417,8 +405,6 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 						inc ++;
 					}
 				}
-
-					
 				}
 
 			}
@@ -434,6 +420,20 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
         // void MEM(){
 				
         // }
+
+        void MEMORY() {
+			if (postMEM.value != 0)
+				if (preMEM[0] != 0) {
+					R[MEM[preMEM[0]].rt] = MEM[MEM[preMEM[0]].imm + R[MEM[preMEM[0]].rs]].imm;
+					postMEM.value = R[MEM[preMEM[0]].rt];
+					postMEM.instr = preMEM[0];
+					preMEM[0] = preMEM[1];
+				}
+
+				else {
+					nullptr;
+				}
+        }
 
         void ALU(){
 			if ( preALU[0] != 0){
@@ -463,11 +463,17 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 	processorState state;
 	state.MEM = MEM;
     int counter = 0;
+	int increment = (breakAddr - lastAddr) / 4;
+
 	while( counter != 8 ){
 		
 		// state.WB();
+
 		state.ALU();
 		// state.MEM();
+
+		// state.ALU();
+		state.MEMORY();
 		state.ISSUE();
 		state.IF(doneBreak, breakAddr);
 
@@ -538,13 +544,28 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
             cout << endl;
         }
 
+		stringstream ssl;
+		cout << "\n\nregisters:";
+            for ( int i = 0; i < 32; i++ ){
+                if( i % 8 == 0 ) ssl << "\nr" << i << ":";
+                ssl << "\t" << state.R[i];
+            }
+            cout << ssl.str() << endl;
+			ssl.clear();
 
+		for (int r = 0, temp = breakAddr; r <= increment; r++, temp += 4) {
+                   if ((r % 8) == 0) {
+                      cout << endl << temp << ":";
+		   }
+
+		   cout << "\t" << MEM[temp].imm;
+		}
 
 
         // END OF PRINT DATA//////////
 
         // state.ISSUE(); // moves the data to needed areas
-        // state.MEM(); // activates the memory access and grabs/ stores the data
+        // state.MEMORY(); // activates the memory access and grabs/ stores the data
 
     counter ++; // temp counter to stp the whille loop
 	state.cycle++;
