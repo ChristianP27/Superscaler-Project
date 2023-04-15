@@ -198,7 +198,7 @@ int main( )
         char * iPtr;
         iPtr = (char*)(void*) &i;
 	int addr = 96;
-        int FD = open("t2.bin" , O_RDONLY);
+        int FD = open("t1.bin" , O_RDONLY);
         // printf( "filename: %s", argv[2]);
 	int amt = 4;
         while( amt != 0 )
@@ -306,13 +306,13 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
         int counter = 0; // Pre_MEM counter
 		int inc = 0; // Pre_ALU counter
 		bool no_move = false; // if its full or not
-		bool cmove1 = true; // only able to move top 1 or none
+		bool cmove1 = false; // only able to move top 1 or none
 		// bool cmove2 = false; // no depenedency
 
 
         // checks for dependencies for moing the items
 
-            if ( (!no_move) && (cmove1)) { // checking to see if the contents can be moved
+            if ( (!no_move) && (!cmove1)) { // checking to see if the contents can be moved
 				// conditions to check to see if we can move the items
 				if ( MEM[preIssue[0]].opcode == 43 ){ // if SW check to see it can move or not can first instr go??
 					if ( MEM[preIssue[0]].rt == MEM[preMEM[0]].rt ){ // 
@@ -352,7 +352,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 				
 			}
 
-			while ( (preIssue[0] != 0) || (no_move == false) || (inc != 2) ) { // test to see if the destination places are full and move them
+			while ((inc != 2)) { // test to see if the destination places are full and move them
 
 			 // looks att all the elements in the alu and mem to see what is empty
 				for ( int i = 0; i < 2; i++ ){
@@ -394,7 +394,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 
 					
 				} else {
-					if ( (MEM[preIssue[0]].opcode == 43) || (MEM[preIssue[0]].opcode == 35) ) { // if it accesses memory then seend to the pre_mem unit
+					 if ( (MEM[preIssue[0]].opcode == 43) || (MEM[preIssue[0]].opcode == 35) ) { // if it accesses memory then seend to the pre_mem unit
 					if ( temp_counter == 2) { // see if we can move the item ( is the queue full)
 						no_move = true; // cant do anything the pre_MEM is full
 						continue;
@@ -432,11 +432,32 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 }
 
         // void MEM(){
-
+				
         // }
 
         void ALU(){
-		
+			if ( preALU[0] != 0){
+				if(postALU.value == 0) {
+					do {
+						if ( MEM[preALU[0]].opcode == 40){ // addi
+							R[MEM[preALU[0]].rt] = R[MEM[preALU[0]].rs] + MEM[preALU[0]].imm;
+						} else if ( (MEM[preMEM[0]].opcode == 32) && MEM[preMEM[0]].func == 32) { // add
+							R[MEM[preALU[0]].rd] = R[MEM[preALU[0]].rs] + R[MEM[preALU[0]].rt];
+						} else if ( MEM[preMEM[0]].opcode == 32 && (MEM[preMEM[0]].func == 32)){ // sub
+							R[MEM[preALU[0]].rd] = R[MEM[preALU[0]].rs] + R[MEM[preALU[0]].rt];
+						}
+
+					} while( postALU.value == 0);
+				}
+			} else {
+				nullptr;
+			}
+
+			// move the data to the post_alu
+			postALU.value = 1;
+			postALU.instr = preALU[0];
+			preALU[0] = preALU[1];
+
         }
 	};
 	processorState state;
@@ -445,7 +466,7 @@ void ISSUE(){ // move the instructions to the given areas needed / Job divider
 	while( counter != 8 ){
 		
 		// state.WB();
-		// state.ALU();
+		state.ALU();
 		// state.MEM();
 		state.ISSUE();
 		state.IF(doneBreak, breakAddr);
